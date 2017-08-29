@@ -12,7 +12,7 @@ License: GPL-2
 
 
 // Set to your email:
-define('SEND_EMAIL_ALERTS_TO','youremail@example.com');
+define('SEND_EMAIL_ALERTS_TO','tzoeger@clever-zoeger.de');
 
 
 ############################################ START CLASS
@@ -22,15 +22,33 @@ class phpMalCodeScan {
 
 	public $infected_files = array();
 	private $scanned_files = array();
-	
+	private $workingDir = null;
 	
 	function __construct() {
-		$this->scan(dirname(__FILE__));
+        $this->setScanDir();
+		$this->scan($this->workingDir);
 		$this->sendalert();
 	}
 	
+
+    protected function setScanDir() {
+        global $argv;
+        if (preg_match('/^\//', $argv[1])) {
+            $this->workingDir = ( $argv[1] );
+        } else {
+            $this->workingDir = ( dirname(__FILE__) . '/' . ((isSet($argv[1])) ? $argv[1] : '') );
+        }
+
+        if (false == realpath($this->workingDir)) {
+            echo "Error: Scandir '".$this->workingDir."' does not exist.\n";
+            exit;
+        } else {
+            $this->workingDir = realpath($this->workingDir);
+        }
+    }
 	
-	function scan($dir) {
+
+    function scan($dir) {
 		$this->scanned_files[] = $dir;
 		$files = scandir($dir);
 		
@@ -39,6 +57,7 @@ class phpMalCodeScan {
 		}
 		
 		foreach($files as $file) {
+            echo $dir.'/'.$file."\n";
 			if(is_file($dir.'/'.$file) && !in_array($dir.'/'.$file,$this->scanned_files)) {
 				$this->check(file_get_contents($dir.'/'.$file),$dir.'/'.$file);
 			} elseif(is_dir($dir.'/'.$file) && substr($file,0,1) != '.') {
